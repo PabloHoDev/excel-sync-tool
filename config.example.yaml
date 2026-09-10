@@ -1,0 +1,30 @@
+# Exemplo de configuração. Copie para config.yaml e ajuste para o seu caso.
+
+# Arquivo que vem do sistema todos os dias (CSV ou Excel)
+source_path: "dados/exportacao_sistema.csv"
+
+# Planilha de controle que será atualizada (múltiplas abas)
+target_path: "dados/controle.xlsx"
+
+# Linha do cabeçalho no arquivo de destino (1 = primeira linha)
+header_row: 4
+
+# Coluna usada para encontrar a linha correta em cada aba
+key_column: "Codigo"
+
+# Colunas que devem ser atualizadas quando o valor mudar
+update_columns:
+  - "Area"
+  - "Status"
+
+# Abas que não devem ser verificadas (resumos, dashboards, etc.)
+ignored_sheets:
+  - "LOG_ATUALIZACAO"
+  - "VISAO GERAL"
+  - "DADOS DE VALIDACAO"
+
+# Senha de proteção das abas (deixe em branco se não houver)
+sheet_password: ""
+
+# Onde salvar o relatório da execução
+log_path: "dados/log_atualizacao.csv"
