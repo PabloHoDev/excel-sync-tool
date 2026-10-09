@@ -3,6 +3,19 @@
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/)
 e versionamento [SemVer](https://semver.org/lang/pt-BR/).
 
+## [2.0.0] - 2026-10-09
+
+### Adicionado
+- Demo web em `web/` (Next.js 16, Node.js) com o motor de sincronização
+  portado para TypeScript e testado com Vitest.
+- Cenário fictício determinístico (Nimbus Serviços: 160 processos, 4 abas)
+  com números ilustrativos e premissa de tempo manual explícita.
+- Persistência das execuções no Supabase (RLS, secret key só no servidor,
+  arquivos enviados nunca armazenados) e painel com histórico.
+- Upload dos próprios arquivos, download da planilha atualizada e do log.
+- CI da aplicação web (lint, tipos, testes e build).
+- README reescrito com arquitetura, capturas de tela e limitações conhecidas.
+
 ## [1.1.0] - 2026-10-09
 
 ### Corrigido
