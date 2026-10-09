@@ -88,7 +88,17 @@ def main(argv: list[str] | None = None) -> int:
             log_path=args.log,
         )
 
-    changes = sync(config)
+    for path in (config.source_path, config.target_path):
+        if not path.exists():
+            print(f"Erro: arquivo não encontrado: {path}", file=sys.stderr)
+            return 2
+
+    try:
+        changes = sync(config)
+    except PermissionError as exc:
+        # Caso mais comum no dia a dia: a planilha de destino está aberta no Excel.
+        print(f"Erro: sem permissão para gravar ({exc}). O arquivo está aberto no Excel?", file=sys.stderr)
+        return 3
 
     updated = sum(1 for c in changes if c.status == "OK")
     unchanged = sum(1 for c in changes if c.status == "SEM_MUDANCA")

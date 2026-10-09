@@ -127,7 +127,8 @@ def sync(config: SyncConfig) -> list[ChangeRecord]:
 
     total = len(source_rows)
     for i, record in enumerate(source_rows, start=1):
-        key_value = str(record.get(config.key_column, "")).strip()
+        raw_key = record.get(config.key_column)
+        key_value = "" if raw_key is None else str(raw_key).strip()
         if not key_value:
             continue
 
