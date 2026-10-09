@@ -98,3 +98,68 @@ def test_sync_preserves_sheet_protection(source_csv, target_xlsx):
     wb2 = load_workbook(target_xlsx)
     assert wb2["EquipeA"].protection.sheet is True
     assert wb2["EquipeA"]["B2"].value == "Financeiro"
+
+
+def test_duplicate_key_keeps_first_occurrence(source_csv, target_xlsx):
+    wb = load_workbook(target_xlsx)
+    wb["EquipeB"].append(["TASK-001", "Duplicado", "Duplicado"])
+    wb.save(target_xlsx)
+
+    config = SyncConfig(
+        source_path=source_csv,
+        target_path=target_xlsx,
+        key_column="Codigo",
+        update_columns=["Area", "Status"],
+        ignored_sheets=["RESUMO"],
+    )
+    changes = sync(config)
+
+    task1 = next(c for c in changes if c.key_value == "TASK-001")
+    assert task1.sheet == "EquipeA"
+    wb2 = load_workbook(target_xlsx)
+    assert wb2["EquipeB"]["B3"].value == "Duplicado"  # segunda ocorrência intocada
+
+
+def test_excel_source_with_blank_key_is_skipped(target_xlsx, tmp_path):
+    source = tmp_path / "fonte.xlsx"
+    wb = Workbook()
+    ws = wb.active
+    ws.append(["Codigo", "Area", "Status"])
+    ws.append(["TASK-001", "Financeiro", "Concluido"])
+    ws.append([None, "Sem chave", "Ignorar"])
+    wb.save(source)
+
+    config = SyncConfig(
+        source_path=source,
+        target_path=target_xlsx,
+        key_column="Codigo",
+        update_columns=["Area", "Status"],
+        ignored_sheets=["RESUMO"],
+    )
+    changes = sync(config)
+
+    assert [c.key_value for c in changes] == ["TASK-001"]
+    assert changes[0].status == "OK"
+
+
+def test_header_row_offset(source_csv, tmp_path):
+    target = tmp_path / "destino.xlsx"
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "EquipeA"
+    ws.append(["Relatório de controle"])
+    ws.append([])
+    ws.append(["Codigo", "Area", "Status"])
+    ws.append(["TASK-001", "Antiga", "Aberto"])
+    wb.save(target)
+
+    config = SyncConfig(
+        source_path=source_csv,
+        target_path=target,
+        key_column="Codigo",
+        update_columns=["Area", "Status"],
+        header_row=3,
+    )
+    sync(config)
+
+    assert load_workbook(target)["EquipeA"]["C4"].value == "Concluido"

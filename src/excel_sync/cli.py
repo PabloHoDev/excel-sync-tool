@@ -66,6 +66,10 @@ def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
 
+    # No Windows o console pode não estar em UTF-8; evita acentos quebrados no resumo.
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
     logging.basicConfig(
         level=logging.DEBUG if args.verbose else logging.INFO,
         format="%(asctime)s [%(levelname)s] %(message)s",
@@ -88,7 +92,17 @@ def main(argv: list[str] | None = None) -> int:
             log_path=args.log,
         )
 
-    changes = sync(config)
+    for path in (config.source_path, config.target_path):
+        if not path.exists():
+            print(f"Erro: arquivo não encontrado: {path}", file=sys.stderr)
+            return 2
+
+    try:
+        changes = sync(config)
+    except PermissionError as exc:
+        # Caso mais comum no dia a dia: a planilha de destino está aberta no Excel.
+        print(f"Erro: sem permissão para gravar ({exc}). O arquivo está aberto no Excel?", file=sys.stderr)
+        return 3
 
     updated = sum(1 for c in changes if c.status == "OK")
     unchanged = sum(1 for c in changes if c.status == "SEM_MUDANCA")

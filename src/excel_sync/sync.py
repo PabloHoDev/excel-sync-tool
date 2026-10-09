@@ -89,15 +89,10 @@ def _read_source_rows(path: Path) -> list[dict[str, Any]]:
     if not rows:
         return []
     header = [str(h).strip() if h is not None else "" for h in rows[0]]
-    return [
-        {header[i]: (row[i] if i < len(row) else None) for i in range(len(header))}
-        for row in rows[1:]
-    ]
+    return [{header[i]: (row[i] if i < len(row) else None) for i in range(len(header))} for row in rows[1:]]
 
 
-def _find_header_indices(
-    sheet: Worksheet, header_row: int, wanted: list[str]
-) -> dict[str, int] | None:
+def _find_header_indices(sheet: Worksheet, header_row: int, wanted: list[str]) -> dict[str, int] | None:
     """Procura os nomes de coluna `wanted` na linha `header_row` da aba.
 
     Retorna {nome_coluna: índice_1based} ou None se alguma coluna não existir.
@@ -123,22 +118,23 @@ def sync(config: SyncConfig) -> list[ChangeRecord]:
     wb = load_workbook(config.target_path)
 
     wanted_columns = [config.key_column, *config.update_columns]
+    index = _build_key_index(wb, config, wanted_columns)
+    logger.info("Chaves indexadas no destino: %d", len(index))
     changes: list[ChangeRecord] = []
 
     total = len(source_rows)
     for i, record in enumerate(source_rows, start=1):
-        key_value = str(record.get(config.key_column, "")).strip()
+        raw_key = record.get(config.key_column)
+        key_value = "" if raw_key is None else str(raw_key).strip()
         if not key_value:
             continue
 
         if i % 50 == 0 or i == total:
             logger.info("Processando %d/%d (%.1f%%)", i, total, i / total * 100)
 
-        target_sheet, target_row, col_idx = _locate_row(
-            wb, config, wanted_columns, key_value
-        )
+        location = index.get(key_value)
 
-        if target_sheet is None:
+        if location is None:
             changes.append(
                 ChangeRecord(
                     timestamp=datetime.now().isoformat(timespec="seconds"),
@@ -154,6 +150,7 @@ def sync(config: SyncConfig) -> list[ChangeRecord]:
             )
             continue
 
+        target_sheet, target_row, col_idx = location
         was_protected = target_sheet.protection.sheet
         if was_protected:
             target_sheet.protection.set_password(config.sheet_password or "")
@@ -203,25 +200,46 @@ def sync(config: SyncConfig) -> list[ChangeRecord]:
     return changes
 
 
-def _locate_row(
-    wb, config: SyncConfig, wanted_columns: list[str], key_value: str
-) -> tuple[Worksheet | None, int | None, dict[str, int] | None]:
-    """Procura `key_value` na coluna-chave em todas as abas válidas."""
+def _build_key_index(
+    wb, config: SyncConfig, wanted_columns: list[str]
+) -> dict[str, tuple[Worksheet, int, dict[str, int]]]:
+    """Indexa a coluna-chave de todas as abas válidas: {chave: (aba, linha, colunas)}.
+
+    Montar o índice uma única vez deixa cada busca O(1), em vez de varrer todas
+    as abas para cada registro da fonte. Se a mesma chave aparecer em mais de
+    uma aba, vale a primeira ocorrência (mesmo comportamento da busca linear)
+    e um aviso é registrado no log.
+    """
+    index: dict[str, tuple[Worksheet, int, dict[str, int]]] = {}
     for sheet in wb.worksheets:
         if sheet.title in config.ignored_sheets:
             continue
 
         col_idx = _find_header_indices(sheet, config.header_row, wanted_columns)
         if col_idx is None:
+            logger.debug("Aba '%s' ignorada: cabeçalho não contém %s", sheet.title, wanted_columns)
             continue
 
         key_idx = col_idx[config.key_column]
         for row in range(config.header_row + 1, sheet.max_row + 1):
             cell_value = sheet.cell(row=row, column=key_idx).value
-            if cell_value is not None and str(cell_value).strip() == key_value:
-                return sheet, row, col_idx
+            if cell_value is None:
+                continue
+            key = str(cell_value).strip()
+            if not key:
+                continue
+            if key in index:
+                logger.warning(
+                    "Chave duplicada '%s' em '%s' (linha %d); mantendo '%s'",
+                    key,
+                    sheet.title,
+                    row,
+                    index[key][0].title,
+                )
+                continue
+            index[key] = (sheet, row, col_idx)
 
-    return None, None, None
+    return index
 
 
 def _write_log(changes: list[ChangeRecord], log_path: Path) -> None:
