@@ -30,7 +30,8 @@ export interface ChangeRow {
 }
 
 export interface Dashboard {
-  source: "supabase" | "illustrative";
+  /** "unavailable": banco configurado, mas a leitura falhou — mostra o ilustrativo com aviso. */
+  source: "supabase" | "illustrative" | "unavailable";
   totals: { runs: number; records: number; updated: number; cellsChanged: number; notFound: number; avgDurationMs: number };
   runs: RunRow[];
   recentChanges: ChangeRow[];
@@ -112,7 +113,11 @@ export async function getDashboard(): Promise<Dashboard> {
       .limit(12),
   ]);
   const error = totals.error ?? runs.error ?? changes.error;
-  if (error) throw new Error(`Falha ao ler o painel: ${error.message}`);
+  if (error) {
+    // O painel nunca deve quebrar a página: registra o erro e cai no histórico ilustrativo.
+    console.error(`Falha ao ler o painel: ${error.message}`);
+    return { ...(await illustrativeDashboard()), source: "unavailable" };
+  }
 
   return {
     source: "supabase",

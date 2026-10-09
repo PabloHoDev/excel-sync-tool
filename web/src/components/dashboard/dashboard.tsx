@@ -26,6 +26,12 @@ export async function Dashboard() {
 
   return (
     <div className="mt-8 space-y-6">
+      {data.source === "unavailable" && (
+        <p role="status" className="rounded-lg border border-warning/40 bg-warning-soft px-4 py-3 text-sm">
+          <span aria-hidden>⚠ </span>
+          Não foi possível ler o histórico no Supabase agora. Exibindo 30 dias ilustrativos do cenário fictício.
+        </p>
+      )}
       {data.source === "illustrative" && (
         <p className="rounded-lg border border-border bg-surface px-4 py-3 text-sm text-text-2">
           <span aria-hidden>ℹ </span>
