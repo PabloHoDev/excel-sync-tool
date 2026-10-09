@@ -11,6 +11,8 @@ Excel) com uma **planilha de controle de várias abas**: encontra cada
 registro na aba certa, atualiza só as células que mudaram e gera um log
 auditável. A formatação e a proteção das abas continuam intactas.
 
+**▶ Demo online: [excel-sync-tool.vercel.app](https://excel-sync-tool.vercel.app)** (empresa e números fictícios)
+
 O projeto tem duas partes que usam o mesmo algoritmo:
 
 | | Para quê | Stack |
