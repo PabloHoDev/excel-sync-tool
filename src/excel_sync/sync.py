@@ -89,15 +89,10 @@ def _read_source_rows(path: Path) -> list[dict[str, Any]]:
     if not rows:
         return []
     header = [str(h).strip() if h is not None else "" for h in rows[0]]
-    return [
-        {header[i]: (row[i] if i < len(row) else None) for i in range(len(header))}
-        for row in rows[1:]
-    ]
+    return [{header[i]: (row[i] if i < len(row) else None) for i in range(len(header))} for row in rows[1:]]
 
 
-def _find_header_indices(
-    sheet: Worksheet, header_row: int, wanted: list[str]
-) -> dict[str, int] | None:
+def _find_header_indices(sheet: Worksheet, header_row: int, wanted: list[str]) -> dict[str, int] | None:
     """Procura os nomes de coluna `wanted` na linha `header_row` da aba.
 
     Retorna {nome_coluna: índice_1based} ou None se alguma coluna não existir.
@@ -236,7 +231,10 @@ def _build_key_index(
             if key in index:
                 logger.warning(
                     "Chave duplicada '%s' em '%s' (linha %d); mantendo '%s'",
-                    key, sheet.title, row, index[key][0].title,
+                    key,
+                    sheet.title,
+                    row,
+                    index[key][0].title,
                 )
                 continue
             index[key] = (sheet, row, col_idx)

@@ -28,8 +28,14 @@ SEED = 42
 TEAMS = ["Financeiro", "Juridico", "Comercial", "RH"]
 STATUSES = ["Aberto", "Em andamento", "Aguardando cliente", "Concluido"]
 CLIENTS = [
-    "Atlas Engenharia", "Bravo Logística", "Cedro Alimentos", "Delta Saúde",
-    "Eixo Construtora", "Fênix Varejo", "Gama Têxtil", "Horizonte Agro",
+    "Atlas Engenharia",
+    "Bravo Logística",
+    "Cedro Alimentos",
+    "Delta Saúde",
+    "Eixo Construtora",
+    "Fênix Varejo",
+    "Gama Têxtil",
+    "Horizonte Agro",
 ]
 OWNERS = ["Ana", "Bruno", "Carla", "Diego", "Elisa", "Fábio", "Gabi", "Hugo"]
 HEADER = ["Codigo", "Cliente", "Responsavel", "Area", "Status", "Prazo"]
@@ -90,7 +96,7 @@ def write_control_workbook(path: Path, processes: list[dict[str, str]]) -> None:
             cell.alignment = Alignment(horizontal="center")
         for p in (p for p in processes if p["Area"] == team):
             ws.append([p[h] for h in HEADER])
-        for letter, width in zip("ABCDEF", (12, 20, 14, 14, 20, 12)):
+        for letter, width in zip("ABCDEF", (12, 20, 14, 14, 20, 12), strict=True):
             ws.column_dimensions[letter].width = width
 
     # Uma aba protegida para mostrar que a ferramenta desprotege e reprotege.
